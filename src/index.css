@@ -1,0 +1,129 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 200 20% 98%;
+    --foreground: 210 25% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 210 25% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 25% 15%;
+
+    --primary: 174 62% 38%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 200 25% 95%;
+    --secondary-foreground: 210 25% 15%;
+
+    --muted: 200 15% 93%;
+    --muted-foreground: 210 10% 45%;
+
+    --accent: 152 45% 45%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 200 18% 88%;
+    --input: 200 18% 88%;
+    --ring: 174 62% 38%;
+
+    --radius: 0.625rem;
+
+    --sidebar-background: 200 20% 97%;
+    --sidebar-foreground: 210 25% 15%;
+    --sidebar-primary: 174 62% 38%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 200 25% 95%;
+    --sidebar-accent-foreground: 210 25% 15%;
+    --sidebar-border: 200 18% 88%;
+    --sidebar-ring: 174 62% 38%;
+
+    /* Custom medical tokens */
+    --medical-teal: 174 62% 38%;
+    --medical-teal-light: 174 50% 92%;
+    --medical-green: 152 45% 45%;
+    --medical-green-light: 152 40% 92%;
+    --medical-blue: 207 60% 48%;
+    --medical-blue-light: 207 55% 93%;
+    --medical-warning: 38 92% 50%;
+    --medical-warning-light: 38 90% 93%;
+  }
+
+  .dark {
+    --background: 210 25% 8%;
+    --foreground: 200 15% 93%;
+    --card: 210 25% 11%;
+    --card-foreground: 200 15% 93%;
+    --popover: 210 25% 11%;
+    --popover-foreground: 200 15% 93%;
+    --primary: 174 55% 45%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 20% 16%;
+    --secondary-foreground: 200 15% 93%;
+    --muted: 210 20% 16%;
+    --muted-foreground: 200 10% 60%;
+    --accent: 152 40% 40%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 210 20% 20%;
+    --input: 210 20% 20%;
+    --ring: 174 55% 45%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  h1, h2, h3 {
+    font-family: 'Playfair Display', serif;
+  }
+}
+
+@layer components {
+  .medical-card {
+    @apply bg-card rounded-xl border border-border shadow-sm p-6 transition-shadow duration-200 hover:shadow-md;
+  }
+
+  .medical-badge {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium;
+  }
+
+  .medical-badge-teal {
+    background-color: hsl(var(--medical-teal-light));
+    color: hsl(var(--medical-teal));
+  }
+
+  .medical-badge-green {
+    background-color: hsl(var(--medical-green-light));
+    color: hsl(var(--medical-green));
+  }
+
+  .medical-badge-blue {
+    background-color: hsl(var(--medical-blue-light));
+    color: hsl(var(--medical-blue));
+  }
+
+  .medical-badge-warning {
+    background-color: hsl(var(--medical-warning-light));
+    color: hsl(var(--medical-warning));
+  }
+
+  .gradient-hero {
+    background: linear-gradient(135deg, hsl(var(--medical-teal) / 0.08) 0%, hsl(var(--medical-blue) / 0.05) 50%, hsl(var(--medical-green) / 0.06) 100%);
+  }
+}
