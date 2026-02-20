@@ -1,0 +1,18 @@
+{
+  "thresholds": {
+    "low_upper": 0.56,
+    "high_lower": 0.65
+  },
+  "tiers": {
+    "Low": "Predicted probability < 0.56",
+    "Intermediate": "0.56 <= Predicted probability < 0.65",
+    "High": "Predicted probability >= 0.65"
+  },
+  "derivation": "Thresholds derived empirically from Section 9 CV-based threshold tuning. No arbitrary cutoffs used.",
+  "best_model": "Logistic Regression",
+  "best_strategy": "Class Weighting",
+  "f1_optimal_threshold": 0.5600000000000002,
+  "high_sensitivity_threshold": 0.6500000000000001,
+  "low_tier_boundary": 0.5600000000000002,
+  "high_tier_boundary": 0.6500000000000001
+}

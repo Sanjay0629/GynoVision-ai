@@ -1,0 +1,41 @@
+# General
+.DS_Store
+.vscode/
+.idea/
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.env
+.ipynb_checkpoints/
+*.joblib
+*.pkl
+*.model
+*.h5
+*.onnx
+
+# Node / Frontend
+node_modules/
+dist/
+dist-ssr/
+.eslintcache
+.stylelintcache
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build artifacts
+build/
+bin/
+obj/
+coverage/
+.nyc_output/
