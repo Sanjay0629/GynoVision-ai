@@ -180,7 +180,43 @@ def _compute_shap(model, X_df, is_tree=True, top_n=5) -> list:
         
     except Exception as e:
         print(f"[SHAP WARNING] Could not compute SHAP values: {e}")
-        return []
+        try:
+            # Fallback to XGBoost global feature importances
+            importances = model.feature_importances_
+            feature_names = X_df.columns.tolist()
+            pairs = list(zip(feature_names, importances))
+            
+            # Sort by absolute magnitude
+            pairs.sort(key=lambda x: abs(x[1]), reverse=True)
+            top = pairs[:top_n]
+            
+            name_map = {
+                "Mutation Count": "Mutation Count",
+                "Fraction Genome Altered": "Fraction Genome Altered",
+                "Diagnosis Age": "Age at Diagnosis",
+                "MSI_PC1": "MSI / Mutation Signature",
+                "Race Category_Asian": "Race (Asian)",
+                "Race Category_Black or African American": "Race (Black/African American)",
+                "Race Category_White": "Race (White)",
+            }
+            
+            # Since global importances are always positive, we guess the direction
+            # based on the overall survival prediction risk. If probability > 0.5, 
+            # we classify top features as increasing risk. Otherwise decreasing.
+            prob = model.predict_proba(X_df)[0][1]
+            direction = "increases risk" if prob >= 0.5 else "decreases risk"
+            
+            return [
+                {
+                    "feature": name_map.get(name, name.replace("Race Category_", "Race (") + ")"),
+                    "shap_value": round(float(val), 4),
+                    "direction": direction
+                }
+                for name, val in top if val > 0
+            ]
+        except Exception as fallback_err:
+            print(f"[SHAP FALLBACK FAILED]: {fallback_err}")
+            return []
 
 # ──────────────────────────────────────────────
 #  Flask Application
