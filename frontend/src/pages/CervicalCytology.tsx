@@ -16,22 +16,49 @@ const CervicalCytology = () => {
       const reader = new FileReader();
       reader.onload = () => setPreview(reader.result as string);
       reader.readAsDataURL(file);
+      fileRef.current!.files = e.target.files; // Keep ref updated
       setResults(null);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!preview) return;
+    const file = fileRef.current?.files?.[0];
+    if (!preview || !file) return;
+
     setLoading(true);
-    setTimeout(() => {
-      setResults({
-        cellType: "Koilocytotic",
-        confidence: 0.88,
-        interpretation: "Koilocytotic cells identified, suggestive of HPV-related changes. Clinical follow-up is recommended.",
+    setResults(null);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetch("http://localhost:5000/predict/cervical", {
+        method: "POST",
+        body: formData,
       });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || "Failed to classify image.");
+      }
+
+      const data = await response.json();
+
+      setResults({
+        cellType: data.prediction,
+        confidence: data.confidence,
+        interpretation: `Predicted cell class: ${data.prediction}. Confidence: ${(data.confidence * 100).toFixed(1)}%. Clinical correlation is recommended.`,
+      });
+
+      // Optionally notify success (can be omitted if results are obvious)
+    } catch (error: any) {
+      console.error("Classification error:", error);
+      // We assume toast is imported (if not, it will just log to console)
+      alert(error.message || "An error occurred during classification.");
+    } finally {
       setLoading(false);
-    }, 2000);
+    }
   };
 
   return (

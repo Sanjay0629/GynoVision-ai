@@ -1,0 +1,9 @@
+flask
+flask-cors
+fastai>=2.7.10
+torch>=2.0.0
+torchvision
+ipython
+plum-dispatch
+pillow
+werkzeug
