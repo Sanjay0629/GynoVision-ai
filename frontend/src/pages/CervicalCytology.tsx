@@ -33,7 +33,7 @@ const CervicalCytology = () => {
     formData.append("file", file);
 
     try {
-      const response = await fetch("http://localhost:5000/predict/cervical", {
+      const response = await fetch("http://localhost:5009/predict/cervical", {
         method: "POST",
         body: formData,
       });

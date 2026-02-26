@@ -231,7 +231,7 @@ def predict_cervical():
 
 # ── 8. Entry-point ───────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 5009))
     print(f"[INFO]  Starting Cervical Cancer Detection API on port {port}")
     print(f"[INFO]  POST /predict/cervical  — classify a cytology image")
     print(f"[INFO]  GET  /health            — server health check")
