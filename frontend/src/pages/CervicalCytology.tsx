@@ -95,11 +95,16 @@ const CervicalCytology = () => {
               </>
             )}
           </div>
+          <label htmlFor="cytology-file-input" className="sr-only">
+            Upload cytology image
+          </label>
           <input
+            id="cytology-file-input"
             ref={fileRef}
             type="file"
             accept=".jpg,.jpeg,.png,.bmp"
             onChange={handleFile}
+            title="Upload a Pap smear image for classification"
             className="hidden"
           />
 
