@@ -13,7 +13,6 @@ venv/
 env/
 .env
 .ipynb_checkpoints/
-*.joblib
 *.pkl
 *.model
 *.h5
