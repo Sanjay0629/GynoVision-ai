@@ -75,14 +75,22 @@ from flask_cors import CORS  # noqa: E402
 from fastai.vision.all import PILImage  # noqa: E402
 from pathlib import Path  # noqa: E402
 import torch  # noqa: E402
+import torch.nn.functional as F  # noqa: E402
 import pickle  # noqa: E402
+import numpy as np  # noqa: E402
+import base64  # noqa: E402
+from io import BytesIO  # noqa: E402
+from PIL import Image as PILImageModule  # noqa: E402
+import matplotlib  # noqa: E402
+matplotlib.use("Agg")  # non-interactive backend
+import matplotlib.cm as cm  # noqa: E402
 
 # ── 5. Flask app setup ──────────────────────────────────────────────────────
 app = Flask(__name__)
 
 # Allow the React dev-server (usually :5173 for Vite or :3000 for CRA)
 CORS(app, resources={
-    r"/predict/*": {"origins": ["http://localhost:3000", "http://localhost:5173", "http://localhost:8080"]},
+    r"/predict/*": {"origins": ["http://localhost:3000", "http://localhost:5173", "http://localhost:8080", "http://localhost:8081"]},
     r"/health":    {"origins": "*"},
 })
 
@@ -152,6 +160,95 @@ def load_model() -> bool:
 # Attempt to load on startup
 load_model()
 
+
+# ── 6b. Grad-CAM helper ──────────────────────────────────────────────────────
+def generate_gradcam(learner, img_tensor, pred_idx):
+    """Generate a Grad-CAM heatmap for the predicted class.
+
+    Hooks into the last convolutional block of the ResNet-50 backbone
+    (layer4) to capture activations and gradients, then produces a
+    heatmap overlaid on the original image.
+
+    Returns a base64-encoded PNG string of the overlay.
+    """
+    model = learner.model.eval()
+
+    # Identify the target layer — ResNet-50 inside FastAI has model[0] as body
+    # and model[1] as head.  model[0] is a Sequential whose last block is layer4.
+    body = model[0]
+    target_layer = body[-1]  # layer4
+
+    activations = []
+    gradients = []
+
+    def forward_hook(module, inp, out):
+        activations.append(out.detach())
+
+    def backward_hook(module, grad_in, grad_out):
+        gradients.append(grad_out[0].detach())
+
+    fh = target_layer.register_forward_hook(forward_hook)
+    bh = target_layer.register_full_backward_hook(backward_hook)
+
+    try:
+        # Forward pass
+        img_batch = img_tensor.unsqueeze(0)  # (1, C, H, W)
+        output = model(img_batch)
+
+        # Backward pass for the predicted class
+        model.zero_grad()
+        target_score = output[0, pred_idx]
+        target_score.backward()
+
+        # Compute Grad-CAM weights
+        grads = gradients[0]        # (1, C, H, W)
+        acts = activations[0]       # (1, C, H, W)
+        weights = grads.mean(dim=(2, 3), keepdim=True)  # GAP over spatial dims
+        cam = (weights * acts).sum(dim=1, keepdim=True)  # weighted combination
+        cam = F.relu(cam)           # ReLU to keep positive contributions
+        cam = cam.squeeze().cpu().numpy()
+
+        # Normalize to [0, 1]
+        cam_min, cam_max = cam.min(), cam.max()
+        if cam_max - cam_min > 1e-8:
+            cam = (cam - cam_min) / (cam_max - cam_min)
+        else:
+            cam = np.zeros_like(cam)
+
+        return cam
+
+    finally:
+        fh.remove()
+        bh.remove()
+
+
+def overlay_gradcam(original_pil_img, cam, alpha=0.5):
+    """Overlay the Grad-CAM heatmap on the original image.
+
+    Returns a base64-encoded PNG string.
+    """
+    # Resize CAM to match original image
+    w, h = original_pil_img.size
+    cam_resized = np.array(
+        PILImageModule.fromarray(np.uint8(cam * 255)).resize((w, h), PILImageModule.BILINEAR)
+    ) / 255.0
+
+    # Apply colormap (jet)
+    heatmap = cm.jet(cam_resized)[:, :, :3]  # drop alpha channel
+    heatmap = np.uint8(heatmap * 255)
+
+    # Blend with original
+    orig_arr = np.array(original_pil_img.convert("RGB"))
+    blended = np.uint8(orig_arr * (1 - alpha) + heatmap * alpha)
+
+    # Encode to base64 PNG
+    overlay_img = PILImageModule.fromarray(blended)
+    buf = BytesIO()
+    overlay_img.save(buf, format="PNG")
+    buf.seek(0)
+    return base64.b64encode(buf.read()).decode("utf-8")
+
+
 # ── 7. Routes ────────────────────────────────────────────────────────────────
 
 
@@ -217,12 +314,33 @@ def predict_cervical():
             for i, cls in enumerate(learn.dls.vocab)
         }
 
-        return jsonify({
+        # ── Grad-CAM visualization ──
+        gradcam_b64 = None
+        try:
+            # Get the processed tensor that FastAI used for prediction
+            dl = learn.dls.test_dl([img])
+            img_tensor = next(iter(dl))[0].squeeze(0)  # (C, H, W)
+
+            cam = generate_gradcam(learn, img_tensor, int(pred_idx))
+            # Convert FastAI PILImage to standard PIL for overlay
+            original_pil = PILImageModule.fromarray(np.array(img))
+            gradcam_b64 = overlay_gradcam(original_pil, cam)
+            print("[INFO]  Grad-CAM generated successfully")
+        except Exception as cam_exc:
+            print(f"[WARN]  Grad-CAM generation failed (non-fatal): {cam_exc}")
+            import traceback
+            traceback.print_exc()
+
+        response_data = {
             "prediction":  str(pred),
             "confidence":  round(float(probs[pred_idx]), 4),
             "classes":     list(learn.dls.vocab),
             "class_probabilities": class_probs,
-        })
+        }
+        if gradcam_b64:
+            response_data["gradcam"] = gradcam_b64
+
+        return jsonify(response_data)
 
     except Exception as exc:
         print(f"[ERROR] Prediction failed: {exc}")

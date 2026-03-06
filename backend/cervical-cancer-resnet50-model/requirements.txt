@@ -7,3 +7,5 @@ ipython
 plum-dispatch
 pillow
 werkzeug
+numpy
+matplotlib
